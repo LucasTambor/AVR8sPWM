@@ -17,17 +17,20 @@
 #define F_OSC	8000000
 #define PWM_F_OSC	10000
 #define SIN_F_OSC	60
-#define LUT_SIZE	PWM_F_OSC/SIN_F_OSC //(166)
+#define LUT_SIZE	(PWM_F_OSC/SIN_F_OSC) //
 #define MAX_ADC_VALUE	1023
+
 //************************************************************************
 
 uint16_t adcValue = 0;
-uint16_t adcNorm = 0;
+double adcNorm = 0;
 
 uint16_t ICR1_value = 0;
 uint16_t LUT_size = 0;
 
+volatile uint8_t idx = 0;
 double lookUpTable[LUT_SIZE];
+int16_t OCR1C_Table[LUT_SIZE];
 
 
 //************************************************************************
@@ -42,6 +45,7 @@ uint16_t calculate_sin_values()
 	{
 		sinVal = sin(i*2*M_PI/LUT_SIZE);
 		lookUpTable[i] = sinVal;
+		
 	}
 
 	return ICR1_value;
@@ -66,7 +70,7 @@ ISR(ADC_vect)
 {
 	adcValue = ADC;
 
-	adcNorm = (uint16_t)((float)adcValue * (float)(ICR1_value/MAX_ADC_VALUE);
+	
 
 	//new reading 
 	ADCSRA|= (1<<ADSC);
@@ -99,8 +103,17 @@ void Timer1_init(void)
 ISR(TIMER1_OVF_vect)
 {
 
+	//Atualiza valor de OCR1C
 	
+	OCR1C = OCR1C_Table[idx] ;
 
+	idx++;
+
+	if(idx == LUT_SIZE)
+	{
+	 	idx = 0;
+	}
+	
 }
 
 // Interrupção Timer 0
@@ -113,10 +126,11 @@ ISR(TIMER0_OVF_vect)
 
 void init_pwm1C(void)
 {
-   
+	ICR1 = 0x0190;
    TCCR1A |= (1<<COM1C1);
-   TCCR1B = (1<< WGM13)|(1<< CS10); //NO preescaler
+   TCCR1B = (1<< WGM13)|(0<<CS11)|(1<< CS10); //NO preescaler
    TCCR1C = 0;
+   TIMSK1 = (1<<TOIE1);
 }
 
 void initIO(void)
@@ -139,10 +153,24 @@ void initIO(void)
 
 }
 
+
+void updateLCD(void)
+{
+	char buffer[10];
+
+	sprintf(buffer, "%d ", adcValue);
+	lcd_gotoxy(5, 1);
+	lcd_puts(buffer);
+}
+
+void updateOCR(void)
+{
+	OCR1C_Table[idx] = (int16_t)((lookUpTable[idx]*200*adcValue)/MAX_ADC_VALUE) + 200;
+
+}
 int main(void)
 {
-	char buffer[20];
-
+	
 	initIO();
 
 	Timer0_init();
@@ -153,21 +181,24 @@ int main(void)
 	lcd_init(LCD_DISP_ON);
 	lcd_clrscr();
 	lcd_puts_p(PSTR("sPWM Generator"));
+	lcd_gotoxy(0, 1);
+	lcd_puts_p(PSTR("ADC: "));
+	
+
 
 	init_pwm1C();  // inicia pwm
-	OCR1C = calculate_sin_values();  // define valor
+	calculate_sin_values();  // define valor
+
 
 	sei(); // interrupcao geral
     
-	//TODO - mudança do valor de OCR1C na interrupção do timer1
+	
 	
     while(1)
     {
-       
+		updateOCR();
 
-
-     
-	    
+		updateLCD(); 
     }
 }
 
