@@ -1,7 +1,7 @@
 /*
  * 	
  *  Author: Lucas Tamborrino
- *  Alterado: Magoo
+ *  2019
  */ 
 
 
@@ -61,14 +61,14 @@ void Adc_init(void){
 	DIDR0=(1<<5)|(1<<4)|(1<<1)|(1<<0);
 }
 
-//Interrupcao de leitura analogica
+//Analog Read ISR
 ISR(ADC_vect)
 {
 	adcValue = ADC;
 
 	adcNorm = (uint16_t)((float)adcValue * (float)(ICR1_value/MAX_ADC_VALUE);
 
-	//Nova leitura 
+	//new reading 
 	ADCSRA|= (1<<ADSC);
 
 }
@@ -126,8 +126,8 @@ void initIO(void)
     MCUCR |= (1<<JTD); // Desabilita JTAG wr 2x
 	// Inicializa portas de IO do processador
 	DDRB = (1<<7)|(1<<6)|(1<<5)|(1<<4)|(1<<3)|(1<<2)|(1<<1); // Port B Bits 7 ao 1 como sa�da
-	DDRC = (1<<6)|(1<<7); // Port C Bits 7 e 6 como sa�da
-	DDRD = (1<<4)|(1<<6)|(1<<7); // Port D Bits 4, 6 e 7 como sa�da
+	DDRC = (1<<6)|(1<<7); // Port C Bits 7 e 6 como saida
+	DDRD = (1<<4)|(1<<6)|(1<<7); // Port D Bits 4, 6 e 7 como saida
 	DDRE = 0; // Port E entrada
 	DDRF = 0; // Port F entrada
 	
